@@ -20,10 +20,10 @@ class CBNVecEnv(Env):
 
     def close(self):
         pass
-    
+
     def seed(self, seed=None):
         pass
 
 
 def create_env(n_env):
-    return DummyVecEnv([lambda: CBNVecEnv() for _ in range(n_env)])
+    return DummyVecEnv([lambda: CBNVecEnv for _ in range(n_env)])
