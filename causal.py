@@ -53,6 +53,14 @@ class CausalGraph:
 
         return sampled_vals
 
+    def get_value(self, node_idx):
+        """
+        Get the value at index node_idx
+        :param node_idx: (int)
+        :return: val (float)
+        """
+        return self.nodes[node_idx].val
+
 
 class CausalNode:
     def __init__(self, idx, adj_mat):
