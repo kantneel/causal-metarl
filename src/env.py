@@ -36,7 +36,7 @@ class CBNEnv(Env):
             # quiz phase
             # create one-hot observation for node intervened on
             intervene_obs = np.zeros(4)
-            intervened_node = np.random.choice(4, 1)
+            intervened_node = np.random.randint(0, 4)
             intervene_obs[intervened_node] = 1
 
             self.state.intervene(intervened_node)
@@ -102,7 +102,7 @@ class EnvState(object):
         self.graph.intervene(node_idx, intervene_val)
 
     def sample_all(self):
-        return self.graph.sample_all()
+        return self.graph.sample_all()[:-1]
 
     def get_value(self, node_idx):
         return self.graph.get_value(node_idx)

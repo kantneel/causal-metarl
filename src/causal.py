@@ -9,7 +9,8 @@ ALL_ADJ_LISTS = list(itertools.product([-1, 0, 1], repeat=10))
 
 
 def _get_random_adj_list():
-    return np.random.choice(np.array(ALL_ADJ_LISTS), 1)
+    idx = np.random.randint(0, len(ALL_ADJ_LISTS))
+    return ALL_ADJ_LISTS[idx]
 
 
 class CausalGraph:
