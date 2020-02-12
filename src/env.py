@@ -3,7 +3,7 @@ from gym.spaces import Discrete, Box
 import numpy as np
 from stable_baselines.common.vec_env import DummyVecEnv
 
-from .causal import CausalGraph
+from src.causal import CausalGraph
 
 
 class CBNEnv(Env):
@@ -15,7 +15,7 @@ class CBNEnv(Env):
 
     @classmethod
     def create(cls, n_env):
-        return DummyVecEnv([lambda: cls for _ in range(n_env)])
+        return DummyVecEnv([lambda: cls() for _ in range(n_env)])
 
     def step(self, action):
         selected = np.argmax(action)

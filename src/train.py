@@ -1,9 +1,8 @@
 from stable_baselines.common.policies import LstmPolicy
 from stable_baselines.a2c import A2C
-from stable_baselines.ppo2 import PPO2
 import tensorflow as tf
 
-from .env import CBNEnv
+from src.env import CBNEnv
 
 
 def train():
