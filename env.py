@@ -10,7 +10,7 @@ class CBNEnv(Env):
     def __init__(self):
         """Create a stable_baselines-compatible environment to train policies on"""
         self.action_space = Discrete(8)
-        self.observation_space = Box(-5, 5, (8,))
+        self.observation_space = Box(-5, 5, (17,))
         self.state = EnvState()
 
     @classmethod
@@ -20,13 +20,14 @@ class CBNEnv(Env):
     def step(self, action):
         selected = np.argmax(action)
         selected_node = selected % 4
+
         info = dict()
         if self.state.info_phase:
             if selected > 3:
                 # inappropriate action for phase
-                reward = -10
+                reward = -10.
             else:
-                reward = 0
+                reward = 0.
                 self.state.intervene(selected_node)
             observed_vals = self.state.sample_all()
             intervene_obs = np.zeros(4)
@@ -42,22 +43,26 @@ class CBNEnv(Env):
             observed_vals = self.state.sample_all()
             if selected <= 3:
                 # inappropriate action for phase
-                reward = -10
+                reward = -10.
             else:
                 reward = observed_vals[selected_node]
             done = True
 
-        # concatenate node values and one-hot for quiz intervention
-        obs = np.concatenate((observed_vals, intervene_obs))
-        # move along in the episode phases
-        self.state.step_phase()
+        # concatenate all data that goes into an observation
+        obs_tuple = (observed_vals, intervene_obs, self.state.prev_action, self.state.prev_reward)
+        obs = np.concatenate(obs_tuple)
+        # step the environment state
+        new_prev_action = np.zeros(8)
+        new_prev_action[selected] = 1
+        self.state.step_state(new_prev_action, np.array([reward]))
         return obs, reward, done, info
 
     def reset(self):
         self.state.reset()
         observed_vals = self.state.sample_all()
         intervene_obs = np.zeros(4)
-        obs = np.concatenate((observed_vals, intervene_obs))
+        obs_tuple = (observed_vals, intervene_obs, self.state.prev_action, self.state.prev_reward)
+        obs = np.concatenate(obs_tuple)
         return obs
 
     def render(self, mode='human'):
@@ -73,17 +78,23 @@ class CBNEnv(Env):
 class EnvState(object):
     def __init__(self):
         """Create an object which holds the state of a CBNEnv"""
-        self.info_phase = True
-        self.info_steps = 0
-        self.graph = CausalGraph()
+        self.info_phase = None
+        self.info_steps = None
+        self.prev_action = None
+        self.prev_reward = None
+        self.graph = None
 
-    def step_phase(self):
+        self.reset()
+
+    def step_state(self, new_prev_action, new_prev_reward):
+        self.prev_action = new_prev_action
+        self.prev_reward = new_prev_reward
         if not self.info_phase:
+            self.info_steps = 0
             self.info_phase = True
         else:
             self.info_steps += 1
             if self.info_steps == 4:
-                self.info_steps = 0
                 self.info_phase = False
 
     def intervene(self, node_idx):
@@ -99,4 +110,6 @@ class EnvState(object):
     def reset(self):
         self.info_phase = True
         self.info_steps = 0
+        self.prev_action = np.zeros(8)
+        self.prev_reward = np.zeros(1)
         self.graph = CausalGraph()
