@@ -9,12 +9,28 @@ from .env import CBNEnv
 def train():
     sess = tf.Session()
     env = CBNEnv.create(2)
+    n_steps = 1024 / env.num_envs
 
-    policy = get_policy(sess)
+    policy = LstmPolicy(sess=sess,
+                        ob_space=env.observation_space,
+                        ac_space=env.action_space,
+                        n_env=env.num_envs,
+                        n_steps=n_steps,
+                        n_batch=1024,
+                        n_lstm=192,
+                        layers=[],
+                        feature_extraction="mlp")
 
-    model = PPO2(LstmPolicy, env, verbose=1)
-    model.learn(total_timesteps=10000)
+    model = A2C(policy=policy,
+                env=env,
+                gamma=0.93,
+                n_steps=n_steps,
+                learning_rate=9e-6,
+                lr_schedule='linear',
+                verbose=1)
+
+    model.learn(total_timesteps=int(1e7))
 
 
-def get_policy(sess):
-    pass
+if __name__ == "__main__":
+    train()
