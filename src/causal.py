@@ -83,7 +83,7 @@ class CausalNode:
         :param cond_data: {node_id : value}
         """
         if not self.intervened:
-            node_cond_mean = sum(k * v for k, v in cond_data.items() if k in self.edges)
+            node_cond_mean = sum(self.edges[k] * v for k, v in cond_data.items() if k in self.edges)
             self.val = np.random.normal(node_cond_mean, 0.1)
 
         self.intervened = False
@@ -96,4 +96,3 @@ class CausalNode:
         """
         self.val = val
         self.intervened = True
-

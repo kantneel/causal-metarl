@@ -18,12 +18,10 @@ class CBNEnv(Env):
         return DummyVecEnv([lambda: cls() for _ in range(n_env)])
 
     def step(self, action):
-        selected = np.argmax(action)
-        selected_node = selected % 4
-
+        selected_node = action % 4
         info = dict()
         if self.state.info_phase:
-            if selected > 3:
+            if action > 3:
                 # inappropriate action for phase
                 reward = -10.
             else:
@@ -41,7 +39,7 @@ class CBNEnv(Env):
 
             self.state.intervene(intervened_node)
             observed_vals = self.state.sample_all()
-            if selected <= 3:
+            if action <= 3:
                 # inappropriate action for phase
                 reward = -10.
             else:
@@ -53,11 +51,12 @@ class CBNEnv(Env):
         obs = np.concatenate(obs_tuple)
         # step the environment state
         new_prev_action = np.zeros(8)
-        new_prev_action[selected] = 1
+        new_prev_action[action] = 1
         self.state.step_state(new_prev_action, np.array([reward]))
         return obs, reward, done, info
 
     def reset(self):
+        print("yep i'm reset.")
         self.state.reset()
         observed_vals = self.state.sample_all()
         intervene_obs = np.zeros(4)
@@ -113,3 +112,9 @@ class EnvState(object):
         self.prev_action = np.zeros(8)
         self.prev_reward = np.zeros(1)
         self.graph = CausalGraph()
+
+
+class DebugEnvState(EnvState):
+    def __init__(self):
+        super().__init__()
+        self.reward_data = None

@@ -21,6 +21,7 @@ def train():
                 learning_rate=9e-6,
                 lr_schedule='linear',
                 policy_kwargs=policy_kwargs,
+                tensorboard_log='../logs',
                 verbose=1,)
 
     model.learn(total_timesteps=int(1e7))
