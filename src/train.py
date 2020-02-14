@@ -1,3 +1,4 @@
+import os
 from stable_baselines.common.policies import LstmPolicy
 from stable_baselines.a2c import A2C
 
@@ -14,6 +15,10 @@ def train():
         feature_extraction="mlp"
     )
 
+    logdir = '../logs'
+    if not os.path.exists(logdir):
+        os.mkdir(logdir)
+
     model = A2C(policy=LstmPolicy,
                 env=env,
                 gamma=0.93,
@@ -21,7 +26,7 @@ def train():
                 learning_rate=9e-6,
                 lr_schedule='linear',
                 policy_kwargs=policy_kwargs,
-                tensorboard_log='../logs',
+                tensorboard_log=logdir,
                 verbose=1,)
 
     model.learn(total_timesteps=int(1e7))
