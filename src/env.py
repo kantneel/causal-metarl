@@ -1,3 +1,4 @@
+from collections import defaultdict
 from gym import Env
 from gym.spaces import Discrete, Box
 import numpy as np
@@ -13,6 +14,9 @@ class CBNEnv(Env):
         self.observation_space = Box(-5, 5, (17,))
         self.state = EnvState()
 
+        self.logger = None
+        self.log_data = defaultdict(int)
+
     @classmethod
     def create(cls, n_env):
         return DummyVecEnv([lambda: cls() for _ in range(n_env)])
@@ -24,8 +28,10 @@ class CBNEnv(Env):
             if action > 3:
                 # inappropriate action for phase
                 reward = -10.
+                self.log_data['wrong_phase_info'] += 1
             else:
                 reward = 0.
+                self.log_data['right_phase_info'] += 1
                 self.state.intervene(selected_node)
             observed_vals = self.state.sample_all()
             intervene_obs = np.zeros(4)
@@ -42,8 +48,10 @@ class CBNEnv(Env):
             if action <= 3:
                 # inappropriate action for phase
                 reward = -10.
+                self.log_data['wrong_phase_quiz'] += 1
             else:
                 reward = observed_vals[selected_node]
+                self.log_data['right_phase_quiz'] += 1
             done = True
 
         # concatenate all data that goes into an observation
@@ -55,8 +63,12 @@ class CBNEnv(Env):
         self.state.step_state(new_prev_action, np.array([reward]))
         return obs, reward, done, info
 
+    def log_callback(self):
+        for k, v in self.log_data.items():
+            self.logger.logkv(k, v)
+        self.log_data = defaultdict(int)
+
     def reset(self):
-        print("yep i'm reset.")
         self.state.reset()
         observed_vals = self.state.sample_all()
         intervene_obs = np.zeros(4)

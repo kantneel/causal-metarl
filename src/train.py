@@ -1,4 +1,5 @@
 import os
+from stable_baselines import logger
 from stable_baselines.common.policies import LstmPolicy
 from stable_baselines.a2c import A2C
 
@@ -6,7 +7,7 @@ from src.env import CBNEnv
 
 
 def train():
-    env = CBNEnv.create(2)
+    env = CBNEnv.create(1)
     n_steps = int(1024 / env.num_envs)
 
     policy_kwargs = dict(
@@ -15,9 +16,9 @@ def train():
         feature_extraction="mlp"
     )
 
-    logdir = '../logs'
-    if not os.path.exists(logdir):
-        os.mkdir(logdir)
+    logdir, logger = setup_logger()
+    env.set_attr("logger", logger)
+    log_callback = lambda locals, globals: env.env_method("log_callback")
 
     model = A2C(policy=LstmPolicy,
                 env=env,
@@ -29,7 +30,19 @@ def train():
                 tensorboard_log=logdir,
                 verbose=1,)
 
-    model.learn(total_timesteps=int(1e7))
+    model.learn(total_timesteps=int(1e7),
+                callback=log_callback)
+
+
+def setup_logger():
+    logdir = '../logs'
+    if not os.path.exists(logdir):
+        os.mkdir(logdir)
+
+    logger.configure(folder=logdir, format_strs=['tensorboard', 'stdout'])
+    logger_instance = logger.Logger.CURRENT
+
+    return logdir, logger_instance
 
 
 if __name__ == "__main__":
