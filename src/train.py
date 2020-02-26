@@ -10,28 +10,34 @@ def train():
     env = CBNEnv.create(1)
     n_steps = int(1024 / env.num_envs)
 
+    logdir, logger = setup_logger()
+    env.set_attr("logger", logger)
+    log_callback = lambda locals, globals: env.env_method("log_callback")
+
     policy_kwargs = dict(
         n_lstm=192,
         layers=[],
         feature_extraction="mlp"
     )
 
-    logdir, logger = setup_logger()
-    env.set_attr("logger", logger)
-    log_callback = lambda locals, globals: env.env_method("log_callback")
+    model = A2C(
+        policy=LstmPolicy,
+        env=env,
+        alpha=0.95,
+        gamma=0.93,
+        n_steps=1024,
+        learning_rate=9e-6,
+        lr_schedule='linear',
+        policy_kwargs=policy_kwargs,
+        tensorboard_log=logdir,
+        verbose=1,
+        seed=94566
+    )
 
-    model = A2C(policy=LstmPolicy,
-                env=env,
-                gamma=0.93,
-                n_steps=n_steps,
-                learning_rate=9e-6,
-                lr_schedule='linear',
-                policy_kwargs=policy_kwargs,
-                tensorboard_log=logdir,
-                verbose=1,)
-
-    model.learn(total_timesteps=int(1e7),
-                callback=log_callback)
+    model.learn(
+        total_timesteps=int(1e7),
+        callback=log_callback
+    )
 
 
 def setup_logger():

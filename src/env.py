@@ -7,6 +7,12 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from src.causal import CausalGraph
 
 
+def one_hot(length, idx):
+    one_hot = np.zeros(length)
+    one_hot[idx] = 1
+    return one_hot
+
+
 class CBNEnv(Env):
     def __init__(self):
         """Create a stable_baselines-compatible environment to train policies on"""
@@ -24,6 +30,7 @@ class CBNEnv(Env):
     def step(self, action):
         selected_node = action % 4
         info = dict()
+        intervene_obs = np.zeros(4)
         if self.state.info_phase:
             if action > 3:
                 # inappropriate action for phase
@@ -32,18 +39,17 @@ class CBNEnv(Env):
             else:
                 reward = 0.
                 self.log_data['right_phase_info'] += 1
-                self.state.intervene(selected_node)
+                self.state.intervene(selected_node, 5)
             observed_vals = self.state.sample_all()
-            intervene_obs = np.zeros(4)
+
+            if self.state.info_steps == 3:
+                # prep for quiz phase
+                # create one-hot observation for node intervened on
+                intervened_node = np.random.randint(0, 4)
+                intervene_obs = one_hot(4, intervened_node)
+                self.state.intervene(intervened_node, -5)
             done = False
         else:
-            # quiz phase
-            # create one-hot observation for node intervened on
-            intervene_obs = np.zeros(4)
-            intervened_node = np.random.randint(0, 4)
-            intervene_obs[intervened_node] = 1
-
-            self.state.intervene(intervened_node)
             observed_vals = self.state.sample_all()
             if action <= 3:
                 # inappropriate action for phase
@@ -58,8 +64,7 @@ class CBNEnv(Env):
         obs_tuple = (observed_vals, intervene_obs, self.state.prev_action, self.state.prev_reward)
         obs = np.concatenate(obs_tuple)
         # step the environment state
-        new_prev_action = np.zeros(8)
-        new_prev_action[action] = 1
+        new_prev_action = one_hot(8, action)
         self.state.step_state(new_prev_action, np.array([reward]))
         return obs, reward, done, info
 
@@ -108,8 +113,7 @@ class EnvState(object):
             if self.info_steps == 4:
                 self.info_phase = False
 
-    def intervene(self, node_idx):
-        intervene_val = 5 if self.info_phase else -5
+    def intervene(self, node_idx, intervene_val):
         self.graph.intervene(node_idx, intervene_val)
 
     def sample_all(self):
