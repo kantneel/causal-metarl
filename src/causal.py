@@ -5,28 +5,103 @@ import itertools
 # N = 5 nodes, edges in upper triangular matrix from {-1, 0, 1}
 
 
-ALL_ADJ_LISTS = list(itertools.product([-1, 0, 1], repeat=10))
+ALL_ADJ_LISTS = [tuple(l) for l in itertools.product([-1, 0, 1], repeat=10)]
 
 
-def _get_random_adj_list():
+def _get_random_adj_list(train):
     idx = np.random.randint(0, len(ALL_ADJ_LISTS))
     return ALL_ADJ_LISTS[idx]
 
 
+def _swap_rows_and_cols(arr_original, permutation):
+    if not isinstance(permutation, list):
+        permutation = list(permutation)
+    arr = arr_original.copy()
+    arr[:] = arr[permutation]
+    arr[:, :] = arr[:, permutation]
+    return arr
+
+
+def get_equivalent_adj_lists(adj_list):
+    adj_mat = np.zeros((5, 5))
+    adj_triu_list = np.triu_indices(5, 1)
+    adj_mat[adj_triu_list] = adj_list
+
+    equivalent_adj_lists = set()
+    triu_indices = np.triu_indices_from(adj_mat, 1)
+
+    all_swaps = itertools.permutations(range(5), 5)
+    for swap_indices in all_swaps:
+        swapped = _swap_rows_and_cols(adj_mat, swap_indices)
+        equivalent_adj_lists.add(tuple(swapped[triu_indices]))
+
+    return equivalent_adj_lists
+
+
+def separate_train_and_test():
+    test = set()
+    adj_lists_copy = list(ALL_ADJ_LISTS)
+    while True:
+        idx = np.random.randint(0, len(adj_lists_copy))
+        rand_train = adj_lists_copy[idx]
+        equivalent_adj_lists = get_equivalent_adj_lists(rand_train)
+        print(len(equivalent_adj_lists))
+        for adj_list in equivalent_adj_lists:
+            print(adj_list)
+            test.add(adj_list)
+            adj_lists_copy.remove(adj_list)
+        test.add(rand_train)
+        # adj_lists_copy.remove(rand_train)
+        print(len(test))
+        if len(test) > 408:
+            break
+
+
+def get_permuted_adj_mats(adj_list):
+    adj_mat = np.zeros((5, 5))
+    adj_triu_list = np.triu_indices(5, 1)
+    adj_mat[adj_triu_list] = adj_list
+    perms = set()
+
+    for perm in itertools.permutations(np.arange(5), 5):
+        permed = _swap_rows_and_cols(adj_mat, perm)
+        perms.add(tuple(permed.reshape(-1)))
+
+    return perms
+
+
+def true_separate_train_and_test():
+    test = set()
+    adj_lists_copy = list(ALL_ADJ_LISTS)
+    while True:
+        idx = np.random.randint(0, len(adj_lists_copy))
+        perms = get_permuted_adj_mats(adj_lists_copy[idx])
+        test.update(perms)
+        print(len(test))
+        if len(test) > 408:
+            break
+
+
 class CausalGraph:
-    def __init__(self, adj_list=None):
+    def __init__(self, adj_list=None, train=True, permute=False):
         """
         Create the causal graph structure.
         :param adj_list: 10 ints in {-1, 0, 1} which form the upper-tri adjacency matrix
         """
         if adj_list is None:
-            adj_list = _get_random_adj_list()
+            adj_list = _get_random_adj_list(train)
 
         adj_mat = np.zeros((5, 5))
         adj_triu_list = np.triu_indices(5, 1)
 
         adj_mat[adj_triu_list] = adj_list
+        permutation = np.arange(5)
+        if permute:
+            permutation = np.random.permutation(permutation)
+            adj_mat = _swap_rows_and_cols(adj_mat, permutation)
+
         self.adj_mat = adj_mat
+        self.permutation = permutation
         self.nodes = [CausalNode(i, self.adj_mat) for i in range(5)]
 
         # TODO: get equivalence classes for graphs
@@ -46,7 +121,7 @@ class CausalGraph:
         """
         sampled_vals = np.zeros(5)
         cond_data = dict()
-        for node_idx in range(5)[::-1]:
+        for node_idx in self.permutation[::-1]:
             # traverse the nodes in topologically sorted order
             node_sample = self.nodes[node_idx].sample(cond_data)
             sampled_vals[node_idx] = node_sample

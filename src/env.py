@@ -14,14 +14,15 @@ def one_hot(length, idx):
 
 
 class CBNEnv(Env):
-    def __init__(self):
+    def __init__(self, agent_type='default', info_phase_length=4):
         """Create a stable_baselines-compatible environment to train policies on"""
         self.action_space = Discrete(8)
         self.observation_space = Box(-5, 5, (17,))
-        self.state = EnvState()
+        self.state = EnvState(info_phase_length)
 
         self.logger = None
         self.log_data = defaultdict(int)
+        self.agent_type = agent_type
 
     @classmethod
     def create(cls, n_env):
@@ -32,17 +33,18 @@ class CBNEnv(Env):
         info = dict()
         intervene_obs = np.zeros(4)
         if self.state.info_phase:
-            if action > 3:
+            if action > 3 and self.agent_type != 'observational':
                 # inappropriate action for phase
                 reward = -10.
                 self.log_data['wrong_phase_info'] += 1
             else:
                 reward = 0.
                 self.log_data['right_phase_info'] += 1
-                self.state.intervene(selected_node, 5)
+                if self.agent_type != 'observational':
+                    self.state.intervene(selected_node, 5)
             observed_vals = self.state.sample_all()
 
-            if self.state.info_steps == 3:
+            if self.state.info_steps == self.state.info_phase_length - 1:
                 # prep for quiz phase
                 # create one-hot observation for node intervened on
                 intervened_node = np.random.randint(0, 4)
@@ -53,7 +55,7 @@ class CBNEnv(Env):
             observed_vals = self.state.sample_all()
             if action <= 3:
                 # inappropriate action for phase
-                reward = -10.
+                reward = -10. * self.state.info_phase_length
                 self.log_data['wrong_phase_quiz'] += 1
             else:
                 reward = observed_vals[selected_node]
@@ -92,8 +94,9 @@ class CBNEnv(Env):
 
 
 class EnvState(object):
-    def __init__(self):
+    def __init__(self, info_phase_length=4):
         """Create an object which holds the state of a CBNEnv"""
+        self.info_phase_length = info_phase_length
         self.info_phase = None
         self.info_steps = None
         self.prev_action = None
@@ -110,7 +113,7 @@ class EnvState(object):
             self.info_phase = True
         else:
             self.info_steps += 1
-            if self.info_steps == 4:
+            if self.info_steps == self.info_phase_length:
                 self.info_phase = False
 
     def intervene(self, node_idx, intervene_val):
