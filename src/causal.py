@@ -65,7 +65,8 @@ def get_permuted_adj_mats(adj_list):
 
     for perm in itertools.permutations(np.arange(5), 5):
         permed = _swap_rows_and_cols(adj_mat, perm)
-        perms.add(tuple(permed.reshape(-1)))
+        if not any(permed[4]):
+            perms.add(tuple(permed.reshape(-1)))
 
     return perms
 
