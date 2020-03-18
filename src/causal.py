@@ -4,8 +4,9 @@ import itertools
 # paper here: https://arxiv.org/pdf/1901.08162.pdf
 # N = 5 nodes, edges in upper triangular matrix from {-1, 0, 1}
 
-
-ALL_ADJ_LISTS = [tuple(l) for l in itertools.product([-1, 0, 1], repeat=10)]
+N = 5
+ALL_ADJ_LISTS = [tuple(l) for l in
+                 itertools.product([-1, 0, 1], repeat=int(N * (N - 1) / 2))]
 
 
 def _get_random_adj_list(train):
@@ -23,20 +24,27 @@ def _swap_rows_and_cols(arr_original, permutation):
 
 
 def get_permuted_adj_mats(adj_list):
-    adj_mat = np.zeros((5, 5))
-    adj_triu_list = np.triu_indices(5, 1)
+    """
+    Returns adjacency matrices which are valid permutations, meaning that
+    the root node (index = 4) does not have any parents.
+    :param adj_list: 10 ints in {-1, 0, 1} which form the upper-tri adjacency matrix
+    :return perms: list of adjacency matrices
+    """
+    adj_mat = np.zeros((N, N))
+    adj_triu_list = np.triu_indices(N, 1)
     adj_mat[adj_triu_list] = adj_list
     perms = set()
 
-    for perm in itertools.permutations(np.arange(5), 5):
+    for perm in itertools.permutations(np.arange(N), N):
         permed = _swap_rows_and_cols(adj_mat, perm)
-        if not any(permed[4]):
+        if not any(permed[N - 1]):
             perms.add(tuple(permed.reshape(-1)))
 
     return perms
 
 
 def true_separate_train_and_test():
+    """Return a list of adjacency matrices for each, training and testing."""
     test = set()
     adj_lists_copy = list(ALL_ADJ_LISTS)
     while True:
@@ -57,11 +65,11 @@ class CausalGraph:
         if adj_list is None:
             adj_list = _get_random_adj_list(train)
 
-        adj_mat = np.zeros((5, 5))
-        adj_triu_list = np.triu_indices(5, 1)
+        adj_mat = np.zeros((N, N))
+        adj_triu_list = np.triu_indices(N, 1)
 
         adj_mat[adj_triu_list] = adj_list
-        permutation = np.arange(5)
+        permutation = np.arange(N)
         if permute:
             permutation = np.random.permutation(permutation)
             adj_mat = _swap_rows_and_cols(adj_mat, permutation)
@@ -116,7 +124,7 @@ class CausalNode:
         self.intervened = False
 
         parents_row = adj_mat[idx]
-        self.edges = {i: parents_row[i] for i in range(5) if parents_row[i] != 0}  # parent_id : edge_weight
+        self.edges = {i: parents_row[i] for i in range(N) if parents_row[i] != 0}  # parent_id : edge_weight
 
     def sample(self, cond_data):
         """
