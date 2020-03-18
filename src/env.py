@@ -14,11 +14,17 @@ def one_hot(length, idx):
 
 
 class CBNEnv(Env):
-    def __init__(self, agent_type='default', info_phase_length=4):
+    def __init__(self,
+                 agent_type='default',
+                 info_phase_length=4,
+                 train=True):
         """Create a stable_baselines-compatible environment to train policies on"""
         self.action_space = Discrete(8)
         self.observation_space = Box(-5, 5, (17,))
-        self.state = EnvState(info_phase_length)
+        if train:
+            self.state = TrainEnvState(info_phase_length)
+        else:
+            self.state = TestEnvState(info_phase_length)
 
         self.logger = None
         self.log_data = defaultdict(int)
@@ -97,6 +103,7 @@ class EnvState(object):
     def __init__(self, info_phase_length=4):
         """Create an object which holds the state of a CBNEnv"""
         self.info_phase_length = info_phase_length
+
         self.info_phase = None
         self.info_steps = None
         self.prev_action = None
@@ -125,12 +132,25 @@ class EnvState(object):
     def get_value(self, node_idx):
         return self.graph.get_value(node_idx)
 
+    def get_graph(self):
+        raise NotImplementedError()
+
     def reset(self):
         self.info_phase = True
         self.info_steps = 0
         self.prev_action = np.zeros(8)
         self.prev_reward = np.zeros(1)
-        self.graph = CausalGraph()
+        self.graph = self.get_graph()
+
+
+class TrainEnvState(EnvState):
+    def get_graph(self):
+        return CausalGraph(train=True)
+
+
+class TestEnvState(EnvState):
+    def get_graph(self):
+        return CausalGraph(train=False)
 
 
 class DebugEnvState(EnvState):

@@ -57,7 +57,11 @@ def true_separate_train_and_test():
 
 
 class CausalGraph:
-    def __init__(self, adj_list=None, train=True, permute=False):
+    def __init__(self,
+                 adj_list=None,
+                 train=True,
+                 permute=True,
+                 intervene_idx=None):
         """
         Create the causal graph structure.
         :param adj_list: 10 ints in {-1, 0, 1} which form the upper-tri adjacency matrix
@@ -74,9 +78,13 @@ class CausalGraph:
             permutation = np.random.permutation(permutation)
             adj_mat = _swap_rows_and_cols(adj_mat, permutation)
 
+        if intervene_idx is None:
+            intervene_idx = np.random.randint(0, 5)
+
         self.adj_mat = adj_mat
         self.permutation = permutation
-        self.nodes = [CausalNode(i, self.adj_mat) for i in range(5)]
+        self.intervene_idx = intervene_idx
+        self.nodes = [CausalNode(i, self.adj_mat) for i in range(N)]
 
         # TODO: get equivalence classes for graphs
 
