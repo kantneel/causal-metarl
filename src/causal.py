@@ -22,41 +22,6 @@ def _swap_rows_and_cols(arr_original, permutation):
     return arr
 
 
-def get_equivalent_adj_lists(adj_list):
-    adj_mat = np.zeros((5, 5))
-    adj_triu_list = np.triu_indices(5, 1)
-    adj_mat[adj_triu_list] = adj_list
-
-    equivalent_adj_lists = set()
-    triu_indices = np.triu_indices_from(adj_mat, 1)
-
-    all_swaps = itertools.permutations(range(5), 5)
-    for swap_indices in all_swaps:
-        swapped = _swap_rows_and_cols(adj_mat, swap_indices)
-        equivalent_adj_lists.add(tuple(swapped[triu_indices]))
-
-    return equivalent_adj_lists
-
-
-def separate_train_and_test():
-    test = set()
-    adj_lists_copy = list(ALL_ADJ_LISTS)
-    while True:
-        idx = np.random.randint(0, len(adj_lists_copy))
-        rand_train = adj_lists_copy[idx]
-        equivalent_adj_lists = get_equivalent_adj_lists(rand_train)
-        print(len(equivalent_adj_lists))
-        for adj_list in equivalent_adj_lists:
-            print(adj_list)
-            test.add(adj_list)
-            adj_lists_copy.remove(adj_list)
-        test.add(rand_train)
-        # adj_lists_copy.remove(rand_train)
-        print(len(test))
-        if len(test) > 408:
-            break
-
-
 def get_permuted_adj_mats(adj_list):
     adj_mat = np.zeros((5, 5))
     adj_triu_list = np.triu_indices(5, 1)
